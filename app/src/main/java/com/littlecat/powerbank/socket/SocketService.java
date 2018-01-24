@@ -25,13 +25,13 @@ public class SocketService extends Service {
     //心跳包频率
     private static final long HEART_BEAT_RATE = 30 * 1000;
 
-    public static final String HOST = "192.168.0.102";// //
-    public static final int PORT = 51001;
+    public static final String HOST = "118.31.15.186";// //
+    public static final int PORT = 8331;
 
     public static final String MESSAGE_ACTION="com.splxtech.powermanagor.engine.socket";
     public static final String HEART_BEAT_ACTION="com.splxtech.powermanagor.engine.socket.heart";
 
-    public static final String HEART_BEAT_STRING="00";//心跳包内容
+    public static final String HEART_BEAT_STRING="13";//心跳包内容
 
     private ReadThread mReadThread;
 
@@ -41,12 +41,13 @@ public class SocketService extends Service {
 
     // For heart Beat
     private Handler mHandler = new Handler();
+    private boolean isSuccess;
     private Runnable heartBeatRunnable = new Runnable() {
 
         @Override
         public void run() {
             if (System.currentTimeMillis() - sendTime >= HEART_BEAT_RATE) {
-                boolean isSuccess = sendMsg(HEART_BEAT_STRING);//就发送一个HEART_BEAT_STRING过去 如果发送失败，就重新初始化一个socket
+                    sendMsg(HEART_BEAT_STRING);//就发送一个HEART_BEAT_STRING过去 如果发送失败，就重新初始化一个socket
                 if (!isSuccess) {
                     mHandler.removeCallbacks(heartBeatRunnable);
                     mReadThread.release();
@@ -63,7 +64,7 @@ public class SocketService extends Service {
 
         @Override
         public boolean sendMessage(String message) throws RemoteException {
-            return sendMsg(message);
+            return isSuccess;
         }
     };
 
@@ -74,31 +75,38 @@ public class SocketService extends Service {
 
     @Override
     public void onCreate() {
+        Log.d("lixiang","lixiang---flag");
         super.onCreate();
         new InitSocketThread().start();
         mLocalBroadcastManager=LocalBroadcastManager.getInstance(this);
 
     }
-    public boolean sendMsg(String msg) {
+    public void sendMsg(final String msg) {
         if (null == mSocket || null == mSocket.get()) {
-            return false;
+            isSuccess = false;
         }
-        Socket soc = mSocket.get();
-        try {
-            if (!soc.isClosed() && !soc.isOutputShutdown()) {
-                OutputStream os = soc.getOutputStream();
-                String message = msg;
-                os.write(message.getBytes());
-                os.flush();
-                sendTime = System.currentTimeMillis();//每次发送成数据，就改一下最后成功发送的时间，节省心跳间隔时间
-            } else {
-                return false;
+        new Thread(){
+            @Override
+            public void run() {
+                Socket soc = mSocket.get();
+                try {
+                    if (!soc.isClosed() && !soc.isOutputShutdown()) {
+                        OutputStream os = soc.getOutputStream();
+                        String message = msg;
+                        Log.d(TAG,"lixiang---msg= "+msg);
+                        os.write(message.getBytes());
+                        os.flush();
+                        sendTime = System.currentTimeMillis();//每次发送成数据，就改一下最后成功发送的时间，节省心跳间隔时间
+                        isSuccess = true;
+                    } else {
+                        isSuccess = false;
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    isSuccess = false;
+                }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-        return true;
+        }.start();
     }
 
     private void initSocket() {//初始化Socket
@@ -107,6 +115,7 @@ public class SocketService extends Service {
             mSocket = new WeakReference<Socket>(so);
             mReadThread = new ReadThread(so);
             mReadThread.start();
+//            new Thread{};
             mHandler.postDelayed(heartBeatRunnable, HEART_BEAT_RATE);//初始化成功后，就准备发送心跳包
         } catch (UnknownHostException e) {
             e.printStackTrace();
@@ -137,6 +146,8 @@ public class SocketService extends Service {
             initSocket();
         }
     }
+
+
 
     // Thread to read content from Socket
     class ReadThread extends Thread {
