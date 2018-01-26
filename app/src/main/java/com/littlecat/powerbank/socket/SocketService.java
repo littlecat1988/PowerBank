@@ -9,6 +9,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.littlecat.powerbank.IBackService;
+import com.littlecat.powerbank.util.Constant;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -175,8 +176,19 @@ public class SocketService extends Service {
 
                             try {
                                 String cmd = message.split("\\|")[0];
-
-                                if (cmd.equals(HEART_BEAT_STRING)) {//处理心跳回复
+                                switch (cmd) {
+                                    case Constant.TCP_CMD_ANS_LOGIN:
+                                        sendRemoteMsg();
+                                        break;
+                                    case Constant.TCP_CMD_ANS_ORDER:
+                                        break;
+                                    case Constant.TCP_CMD_ANS_SLOT:
+                                        break;
+                                    case Constant.TCP_CMD_HEART:
+                                        sendTime = System.currentTimeMillis();
+                                        break;
+                                }
+                               if (cmd.equals(Constant.TCP_CMD_HEART)) {//处理心跳回复
                                     sendTime = System.currentTimeMillis();
                                     Intent intent = new Intent(HEART_BEAT_ACTION);
                                     mLocalBroadcastManager.sendBroadcast(intent);
@@ -196,5 +208,8 @@ public class SocketService extends Service {
                 }
             }
         }
+    }
+
+    private void sendRemoteMsg() {
     }
 }

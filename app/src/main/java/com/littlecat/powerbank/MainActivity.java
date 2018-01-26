@@ -117,7 +117,7 @@ public class MainActivity extends Activity {
         OkHttpUtils.postAsyn(Constant.URL+Constant.API_SYNC_SETTING,mMap,new HttpCallback(){
             public void onSuccess(ResultDesc resultDesc) {
                 Log.d("lixiang","lixiang---onSuccess");
-                sendTcpMsg();
+
 
             }
 
@@ -127,7 +127,7 @@ public class MainActivity extends Activity {
     }
     private void sendTcpMsg() {
         if(null != iBackService) {
-            String msg = getMsg(Constant.TCP_CMD_LOGIN,"1");
+            String msg = getMsg(Constant.TCP_CMD_LOGIN,"10000");
             try {
                 iBackService.sendMessage(msg);
             } catch (RemoteException e) {
@@ -138,12 +138,12 @@ public class MainActivity extends Activity {
     }
 
     private String getMsg(String cmd, String info) {
-        String temp =  cmd + Constant.SPLIT + info ;
+        String temp =  cmd + Constant.SPLIT + info + Constant.SPLIT;
         int checksum = 0;
         for(byte b : temp.getBytes()){
             checksum += b;
         }
-        temp = temp + Constant.SPLIT + String.valueOf(checksum);
+        temp = temp + String.valueOf(checksum);
         return temp;
     }
 
@@ -199,6 +199,7 @@ public class MainActivity extends Activity {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
             iBackService = IBackService.Stub.asInterface(iBinder);
+            sendTcpMsg();
 
         }
 
