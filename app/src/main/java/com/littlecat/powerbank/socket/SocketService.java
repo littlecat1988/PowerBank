@@ -8,7 +8,6 @@ import android.os.RemoteException;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-
 import com.littlecat.powerbank.IBackService;
 
 import java.io.IOException;
@@ -23,15 +22,15 @@ import java.util.Arrays;
 public class SocketService extends Service {
     private static final String TAG = "BackService";
     //心跳包频率
-    private static final long HEART_BEAT_RATE = 30 * 1000;
+    private static final long HEART_BEAT_RATE = 90 * 1000;
 
     public static final String HOST = "118.31.15.186";// //
     public static final int PORT = 8331;
 
-    public static final String MESSAGE_ACTION="com.splxtech.powermanagor.engine.socket";
-    public static final String HEART_BEAT_ACTION="com.splxtech.powermanagor.engine.socket.heart";
+    public static final String MESSAGE_ACTION = "com.littlecat.powerbank.socket";
+    public static final String HEART_BEAT_ACTION = "com.littlecat.powerbank.socket.heart";
 
-    public static final String HEART_BEAT_STRING="13";//心跳包内容
+    public static final String HEART_BEAT_STRING = "15";//心跳包内容
 
     private ReadThread mReadThread;
 
@@ -47,23 +46,21 @@ public class SocketService extends Service {
         @Override
         public void run() {
             if (System.currentTimeMillis() - sendTime >= HEART_BEAT_RATE) {
-                    sendMsg(HEART_BEAT_STRING);//就发送一个HEART_BEAT_STRING过去 如果发送失败，就重新初始化一个socket
-                if (!isSuccess) {
-                    mHandler.removeCallbacks(heartBeatRunnable);
-                    mReadThread.release();
-                    releaseLastSocket(mSocket);
-                    new InitSocketThread().start();
-                }
+                mHandler.removeCallbacks(heartBeatRunnable);
+                mReadThread.release();
+                releaseLastSocket(mSocket);
+                new InitSocketThread().start();
             }
             mHandler.postDelayed(this, HEART_BEAT_RATE);
         }
     };
 
-    private long sendTime = 0L;
+    private long sendTime = System.currentTimeMillis();
     private IBackService.Stub iBackService = new IBackService.Stub() {
 
         @Override
         public boolean sendMessage(String message) throws RemoteException {
+            sendMsg(message);
             return isSuccess;
         }
     };
@@ -75,17 +72,19 @@ public class SocketService extends Service {
 
     @Override
     public void onCreate() {
-        Log.d("lixiang","lixiang---flag");
+        Log.d("lixiang", "lixiang---flag");
         super.onCreate();
         new InitSocketThread().start();
-        mLocalBroadcastManager=LocalBroadcastManager.getInstance(this);
+        mLocalBroadcastManager = LocalBroadcastManager.getInstance(this);
 
     }
+
     public void sendMsg(final String msg) {
         if (null == mSocket || null == mSocket.get()) {
             isSuccess = false;
         }
-        new Thread(){
+
+        new Thread() {
             @Override
             public void run() {
                 Socket soc = mSocket.get();
@@ -93,17 +92,14 @@ public class SocketService extends Service {
                     if (!soc.isClosed() && !soc.isOutputShutdown()) {
                         OutputStream os = soc.getOutputStream();
                         String message = msg;
-                        Log.d(TAG,"lixiang---msg= "+msg);
+                        Log.d(TAG, "lixiang---msg= " + msg);
                         os.write(message.getBytes());
                         os.flush();
-                        sendTime = System.currentTimeMillis();//每次发送成数据，就改一下最后成功发送的时间，节省心跳间隔时间
-                        isSuccess = true;
+//                        sendTime = S
                     } else {
-                        isSuccess = false;
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
-                    isSuccess = false;
                 }
             }
         }.start();
@@ -115,8 +111,7 @@ public class SocketService extends Service {
             mSocket = new WeakReference<Socket>(so);
             mReadThread = new ReadThread(so);
             mReadThread.start();
-//            new Thread{};
-            mHandler.postDelayed(heartBeatRunnable, HEART_BEAT_RATE);//初始化成功后，就准备发送心跳包
+//            mHandler.postDelayed(heartBeatRunnable, HEART_BEAT_RATE);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -148,7 +143,6 @@ public class SocketService extends Service {
     }
 
 
-
     // Thread to read content from Socket
     class ReadThread extends Thread {
         private WeakReference<Socket> mWeakSocket;
@@ -178,15 +172,22 @@ public class SocketService extends Service {
                             String message = new String(Arrays.copyOf(buffer,
                                     length)).trim();
                             Log.e(TAG, message);
-                            //收到服务器过来的消息，就通过Broadcast发送出去
-                            if(message.equals(HEART_BEAT_STRING)){//处理心跳回复
-                                Intent intent=new Intent(HEART_BEAT_ACTION);
-                                mLocalBroadcastManager.sendBroadcast(intent);
-                            }else{
-                                //其他消息回复
-                                Intent intent=new Intent(MESSAGE_ACTION);
-                                intent.putExtra("message", message);
-                                mLocalBroadcastManager.sendBroadcast(intent);
+
+                            try {
+                                String cmd = message.split("\\|")[0];
+
+                                if (cmd.equals(HEART_BEAT_STRING)) {//处理心跳回复
+                                    sendTime = System.currentTimeMillis();
+                                    Intent intent = new Intent(HEART_BEAT_ACTION);
+                                    mLocalBroadcastManager.sendBroadcast(intent);
+                                } else {
+                                    //其他消息回复
+                                    Intent intent = new Intent(MESSAGE_ACTION);
+                                    intent.putExtra("message", message);
+                                    mLocalBroadcastManager.sendBroadcast(intent);
+                                }
+                            } catch (NullPointerException e) {
+                                e.printStackTrace();
                             }
                         }
                     }

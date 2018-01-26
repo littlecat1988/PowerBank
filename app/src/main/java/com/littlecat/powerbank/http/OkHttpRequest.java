@@ -3,7 +3,6 @@ package com.littlecat.powerbank.http;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.util.Log;
 
 import com.littlecat.powerbank.R;
 import com.littlecat.powerbank.util.UIUtils;
@@ -161,7 +160,6 @@ public class OkHttpRequest {
                 try {
                     if (response.isSuccessful()) {
                         OkHttpUtils.sendSuccessResultCallback(DataAnalysis.getReturnData(response.body().string()), callback);
-                        Log.d("lixiang","lixiang---");
                     } else {
                         OkHttpUtils.sendFailResultCallback(response.code(), response.message(), callback);
                     }

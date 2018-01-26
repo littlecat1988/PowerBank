@@ -63,13 +63,13 @@ public class DataAnalysis {
         try {
             JSONObject jsonObject = new JSONObject(result);
             //返回码
-            int error_code = jsonObject.getInt("error_code");
+            int error_code = jsonObject.getInt("errcode");
             //返回说明
-            String reason = jsonObject.getString("reason");
+            String reason = jsonObject.getString("errmsg");
             //返回数据
-            String resultData = jsonObject.getString("result");
+//            String resultData = jsonObject.getString("result");
 
-            resultDesc = dataRestructuring(error_code, reason, resultData);
+            resultDesc = dataRestructuring(error_code, reason, null);
         } catch (JSONException e) {
             resultDesc = dataRestructuring(-1, UIUtils.getString(R.string.back_abnormal_results), "");
         }

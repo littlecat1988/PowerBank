@@ -11,6 +11,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -98,7 +99,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        readSerialPort();
+//        readSerialPort();
         syncSetting();
 
     }
@@ -116,11 +117,34 @@ public class MainActivity extends Activity {
         OkHttpUtils.postAsyn(Constant.URL+Constant.API_SYNC_SETTING,mMap,new HttpCallback(){
             public void onSuccess(ResultDesc resultDesc) {
                 Log.d("lixiang","lixiang---onSuccess");
+                sendTcpMsg();
+
             }
 
             public void onFailure(int code, String message) {
             }
         });
+    }
+    private void sendTcpMsg() {
+        if(null != iBackService) {
+            String msg = getMsg(Constant.TCP_CMD_LOGIN,"1");
+            try {
+                iBackService.sendMessage(msg);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
+
+    private String getMsg(String cmd, String info) {
+        String temp =  cmd + Constant.SPLIT + info ;
+        int checksum = 0;
+        for(byte b : temp.getBytes()){
+            checksum += b;
+        }
+        temp = temp + Constant.SPLIT + String.valueOf(checksum);
+        return temp;
     }
 
     private void readSerialPort() {
@@ -170,7 +194,7 @@ public class MainActivity extends Activity {
     private IntentFilter mIntentFilter;
     private Intent mServiceIntent;
     private LocalBroadcastManager localBroadcastManager;
-    private boolean flag;
+    private boolean flag = true;
     private ServiceConnection conn = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
@@ -201,8 +225,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onStart() {
-        flag = false;
-        if(true)
+//        flag = false;
+        if(flag)
         {
             flag = true;
             initSocket();

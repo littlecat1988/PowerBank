@@ -32,9 +32,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLSession;
-
 import okhttp3.Cache;
 import okhttp3.OkHttpClient;
 
@@ -73,14 +70,14 @@ public class BaseApplication extends Application {
                 .readTimeout(20, TimeUnit.SECONDS)//读取超时(单位:秒)
                 .pingInterval(20, TimeUnit.SECONDS) //websocket轮训间隔(单位:秒)
                 .cache(new Cache(cache.getAbsoluteFile(), cacheSize))//设置缓存
-                .cookieJar(cookieJar)//Cookies持久化
-                .hostnameVerifier(new HostnameVerifier() {
-                    @Override
-                    public boolean verify(String hostname, SSLSession session) {
-                        return true;
-                    }
-                })
-                .sslSocketFactory(sslParams.sSLSocketFactory, sslParams.trustManager)//https配置
+//                .cookieJar(cookieJar)//Cookies持久化
+//                .hostnameVerifier(new HostnameVerifier() {
+//                    @Override
+//                    public boolean verify(String hostname, SSLSession session) {
+//                        return true;
+//                    }
+//                })
+//                .sslSocketFactory(sslParams.sSLSocketFactory, sslParams.trustManager)//https配置
                 .build();
         OkHttpUtils.initClient(okHttpClient);
     }
