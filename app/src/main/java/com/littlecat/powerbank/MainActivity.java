@@ -216,6 +216,7 @@ public class MainActivity extends Activity {
             @Override
             public void onReceive(Context context, Intent intent) {
                 Log.d("lixiang","lixiang---intent= "+intent.getAction());
+                
             }
         };
         mServiceIntent = new Intent(this,SocketService.class);
