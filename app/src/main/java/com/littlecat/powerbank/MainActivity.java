@@ -16,7 +16,10 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.google.gson.Gson;
+import com.littlecat.powerbank.bean.BatteryBean;
 import com.littlecat.powerbank.bean.DeviceBean;
+import com.littlecat.powerbank.bean.MachineBean;
+import com.littlecat.powerbank.bean.SettingBean;
 import com.littlecat.powerbank.http.HttpCallback;
 import com.littlecat.powerbank.http.OkHttpUtils;
 import com.littlecat.powerbank.http.ResultDesc;
@@ -42,6 +45,8 @@ public class MainActivity extends Activity {
     public SerialPortFinder mSerialPortFinder = new SerialPortFinder();
     private SerialPort mSerialPort = null;
     private byte[] mBuffer;
+    Gson gson = new Gson();
+    private SettingBean settingBean;
 
     private class ReadThread extends Thread {
 
@@ -101,33 +106,53 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
 //        readSerialPort();
         syncSetting();
+        syncBattery();
 
     }
 
+    private void syncBattery() {
+        DeviceBean deviceBean = new DeviceBean();
+        deviceBean.setSlot_count("8");
+        deviceBean.setTotal("5");
+        deviceBean.setUsable("3");
+        deviceBean.setEmpty("3");
+        deviceBean.setSdcard("1");
+        deviceBean.setStatus("0");
+        BatteryBean batteryBean = new BatteryBean();
+        batteryBean.setBatteryInfo("123","1","100","1234","222","0","1","1","111");
+    }
+
     private void syncSetting() {
-        Map<String, String> mMap = new HashMap<>();
         DeviceBean deviceBean = new DeviceBean();
         deviceBean.setDevice_ver("2");
         deviceBean.setSoft_ver("22");
         deviceBean.setPush_id("1");
-        Gson gson = new Gson();
-        gson.toJson(deviceBean);
-        mMap.put(Constant.MAC, "12345678901000");
-        mMap.put(Constant.DEVICE, gson.toJson(deviceBean));
-        OkHttpUtils.postAsyn(Constant.URL+Constant.API_SYNC_SETTING,mMap,new HttpCallback(){
+        MachineBean machineBean = new MachineBean();
+        machineBean.setDeviceBean(deviceBean);
+        machineBean.setMac("123456789010000");
+        String json = gson.toJson(machineBean);
+        OkHttpUtils.postAync(Constant.URL + Constant.API_SYNC_SETTING, json, new HttpCallback() {
             public void onSuccess(ResultDesc resultDesc) {
-                Log.d("lixiang","lixiang---onSuccess");
+                Log.d("lixiang", "lixiang---onSuccess");
+                if (null != resultDesc) {
+                    String result = resultDesc.getResult();
+                    if (null != result) {
+                        settingBean = gson.fromJson(result, SettingBean.class);
+                        Log.d("lixiang", "lixiang---settingBean= " + settingBean.getApp_package());
+                    } else {
 
-
+                    }
+                }
             }
 
             public void onFailure(int code, String message) {
             }
         });
     }
-    private void sendTcpMsg() {
-        if(null != iBackService) {
-            String msg = getMsg(Constant.TCP_CMD_LOGIN,"10000");
+
+    private void sendTcpLogin() {
+        if (null != iBackService) {
+            String msg = Constant.getMsg(Constant.TCP_CMD_LOGIN, "10000");
             try {
                 iBackService.sendMessage(msg);
             } catch (RemoteException e) {
@@ -137,15 +162,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    private String getMsg(String cmd, String info) {
-        String temp =  cmd + Constant.SPLIT + info + Constant.SPLIT;
-        int checksum = 0;
-        for(byte b : temp.getBytes()){
-            checksum += b;
-        }
-        temp = temp + String.valueOf(checksum);
-        return temp;
-    }
+
 
     private void readSerialPort() {
         try {
@@ -199,7 +216,7 @@ public class MainActivity extends Activity {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
             iBackService = IBackService.Stub.asInterface(iBinder);
-            sendTcpMsg();
+//            sendTcpMsg();
 
         }
 
@@ -215,22 +232,57 @@ public class MainActivity extends Activity {
         mReciver = new MessageBackReciver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                Log.d("lixiang","lixiang---intent= "+intent.getAction());
-                
+                Log.d("lixiang", "lixiang---intent= " + intent.getAction());
+                String action = intent.getAction();
+                if (action.equals(SocketService.SOCKET_INIT_ACTION)) {
+                    sendTcpLogin();
+                }else if(action.equals(Constant.INTENT_BORROW_CONFIRM)){
+                    String order_id = intent.getStringExtra(Constant.ORDER_ID);
+                    borrowConfirm(order_id);
+                }
             }
         };
         mServiceIntent = new Intent(this,SocketService.class);
         mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(SocketService.HEART_BEAT_ACTION);
         mIntentFilter.addAction(SocketService.MESSAGE_ACTION);
+        mIntentFilter.addAction(SocketService.SOCKET_INIT_ACTION);
+        mIntentFilter.addAction(Constant.INTENT_BORROW_CONFIRM);
+
+    }
+
+    private void borrowConfirm(String order_id) {
+        Map<String,Object> map = new HashMap<String,Object>();
+        Map<String,Object> subMap = new HashMap<String,Object>();
+        map.put("orderid",order_id);
+        map.put("status",21);
+        map.put("retry",0);
+        subMap.put("id",123);
+        map.put("battery",subMap);
+        String json = gson.toJson(map);
+        OkHttpUtils.postAync(Constant.URL + Constant.API_SYNC_BATTERY + settingBean.getDevice_id(), json, new HttpCallback(){
+            public void onSuccess(ResultDesc resultDesc) {
+                Log.d("lixiang", "lixiang---onSuccess");
+                if (null != resultDesc) {
+                   if(resultDesc.getError_code() == 0){
+                       //Todo
+                       //通知串口弹出电池
+
+                   }else{
+
+                   }
+                }
+            }
+
+            public void onFailure(int code, String message) {
+            }
+        });
     }
 
     @Override
     protected void onStart() {
-//        flag = false;
-        if(flag)
-        {
-            flag = true;
+        flag = false;
+        if (!flag) {
             initSocket();
             localBroadcastManager.registerReceiver(mReciver,mIntentFilter);
             flag = bindService(mServiceIntent,conn,BIND_AUTO_CREATE);

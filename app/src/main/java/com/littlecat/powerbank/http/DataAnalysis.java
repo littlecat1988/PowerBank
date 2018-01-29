@@ -2,6 +2,7 @@ package com.littlecat.powerbank.http;
 
 
 import com.littlecat.powerbank.R;
+import com.littlecat.powerbank.util.Constant;
 import com.littlecat.powerbank.util.StringUtil;
 import com.littlecat.powerbank.util.UIUtils;
 
@@ -56,22 +57,31 @@ public class DataAnalysis {
 
         if (StringUtil.isEmpty(result)) {
             //返回数据为空
-            resultDesc = dataRestructuring(-1, UIUtils.getString(R.string.back_abnormal_results), "");
+            resultDesc = dataRestructuring(-1, UIUtils.getString(R.string.back_abnormal_results), null);
             return resultDesc;
         }
 
         try {
             JSONObject jsonObject = new JSONObject(result);
             //返回码
-            int error_code = jsonObject.getInt("errcode");
-            //返回说明
-            String reason = jsonObject.getString("errmsg");
+            int error_code = -1;
+            String reason = null;
+            if (jsonObject.has(Constant.ERR_CODE) && jsonObject.has(Constant.ERR_MSG)) {
+                error_code = jsonObject.getInt(Constant.ERR_CODE);
+                reason = jsonObject.getString(Constant.ERR_MSG);
+                resultDesc = dataRestructuring(error_code, reason, null);
+            }else{
+                resultDesc = dataRestructuring(error_code, reason, result);
+            }
             //返回数据
-//            String resultData = jsonObject.getString("result");
+//            String resultData = null;
+//            if (jsonObject.has(Constant.RESPONSE_RESULT)) {
+//                resultData = jsonObject.getString(Constant.RESPONSE_RESULT);
+//            }
 
-            resultDesc = dataRestructuring(error_code, reason, null);
+//            resultDesc = dataRestructuring(error_code, reason, resultData);
         } catch (JSONException e) {
-            resultDesc = dataRestructuring(-1, UIUtils.getString(R.string.back_abnormal_results), "");
+            resultDesc = dataRestructuring(-1, UIUtils.getString(R.string.back_abnormal_results), null);
         }
 
         return resultDesc;

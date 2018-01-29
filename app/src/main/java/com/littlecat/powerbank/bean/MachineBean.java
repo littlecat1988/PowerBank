@@ -7,22 +7,32 @@ import java.util.List;
  */
 
 public class MachineBean {
-    private DeviceBean deviceBean;
+    private DeviceBean device;
     private List<BatteryBean> batteryBeanList;
 
+    public String getMac() {
+        return mac;
+    }
+
+    public void setMac(String mac) {
+        this.mac = mac;
+    }
+
+    private String mac;
+
     public DeviceBean getDeviceBean() {
-        return deviceBean;
+        return device;
     }
 
     public void setDeviceBean(DeviceBean deviceBean) {
-        this.deviceBean = deviceBean;
+        this.device = deviceBean;
     }
 
     public List<BatteryBean> getBatteryBeanList() {
         return batteryBeanList;
     }
 
-    public void setTotal( List<BatteryBean> batteryBeanList) {
+    public void setBatteryBeanList( List<BatteryBean> batteryBeanList) {
         this.batteryBeanList = batteryBeanList;
     }
 }

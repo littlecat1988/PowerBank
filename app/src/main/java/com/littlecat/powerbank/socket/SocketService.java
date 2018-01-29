@@ -30,6 +30,7 @@ public class SocketService extends Service {
 
     public static final String MESSAGE_ACTION = "com.littlecat.powerbank.socket";
     public static final String HEART_BEAT_ACTION = "com.littlecat.powerbank.socket.heart";
+    public static final String SOCKET_INIT_ACTION = "com.littlecat.powerbank.socket.init";
 
     public static final String HEART_BEAT_STRING = "15";//心跳包内容
 
@@ -82,7 +83,8 @@ public class SocketService extends Service {
 
     public void sendMsg(final String msg) {
         if (null == mSocket || null == mSocket.get()) {
-            isSuccess = false;
+//            isSuccess = false;
+//            return ;
         }
 
         new Thread() {
@@ -93,8 +95,15 @@ public class SocketService extends Service {
                     if (!soc.isClosed() && !soc.isOutputShutdown()) {
                         OutputStream os = soc.getOutputStream();
                         String message = msg;
-                        Log.d(TAG, "lixiang---msg= " + msg);
-                        os.write(message.getBytes());
+                        int length = message.getBytes().length;
+                        byte[] bytes = new byte[length + 4];
+                        bytes[0] = (byte) (bytes.length & 0xff);
+                        bytes[1] = (byte) (bytes.length >> 8 & 0xff);
+                        bytes[2] = (byte) (bytes.length >> 16 & 0xff);
+                        bytes[3] = (byte) (bytes.length >> 24 & 0xff);
+//                        bytes[0] = (byte)length;
+                        System.arraycopy(message.getBytes(), 0, bytes, 4, length);
+                        os.write(bytes);
                         os.flush();
 //                        sendTime = S
                     } else {
@@ -112,7 +121,9 @@ public class SocketService extends Service {
             mSocket = new WeakReference<Socket>(so);
             mReadThread = new ReadThread(so);
             mReadThread.start();
-//            mHandler.postDelayed(heartBeatRunnable, HEART_BEAT_RATE);
+            Intent intent = new Intent(SOCKET_INIT_ACTION);
+            mLocalBroadcastManager.sendBroadcast(intent);
+            mHandler.postDelayed(heartBeatRunnable, HEART_BEAT_RATE);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -173,16 +184,19 @@ public class SocketService extends Service {
                             String message = new String(Arrays.copyOf(buffer,
                                     length)).trim();
                             Log.e(TAG, message);
-
+                            String[] info = message.split("\\|");
                             try {
-                                String cmd = message.split("\\|")[0];
+                                String cmd = info[0];
                                 switch (cmd) {
-                                    case Constant.TCP_CMD_ANS_LOGIN:
-                                        sendRemoteMsg();
+                                    case Constant.TCP_CMD_LOGIN:
+                                        sendTcpMsg(Constant.TCP_CMD_ANS_LOGIN, info[1], "0");
+                                        Intent intent = new Intent(Constant.INTENT_BORROW_CONFIRM);
+                                        intent.putExtra(Constant.ORDER_ID,info[1]);
+                                        mLocalBroadcastManager.sendBroadcast(intent);
                                         break;
-                                    case Constant.TCP_CMD_ANS_ORDER:
+                                    case Constant.TCP_CMD_ORDER:
                                         break;
-                                    case Constant.TCP_CMD_ANS_SLOT:
+                                    case Constant.TCP_CMD_SLOT:
                                         break;
                                     case Constant.TCP_CMD_HEART:
                                         sendTime = System.currentTimeMillis();
@@ -210,6 +224,8 @@ public class SocketService extends Service {
         }
     }
 
-    private void sendRemoteMsg() {
+    private void sendTcpMsg(String... info) {
+        String msg = Constant.getMsg(info);
+        sendMsg(msg);
     }
 }

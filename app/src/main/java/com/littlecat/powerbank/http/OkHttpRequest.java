@@ -38,7 +38,7 @@ import okio.ByteString;
 
 public class OkHttpRequest {
 
-    private static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json; charset=utf-8");//JSON数据格式
+    private static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json");//JSON数据格式
     private static final MediaType MEDIA_TYPE_STREAM = MediaType.parse("application/octet-stream");//二进制流数据
     private static final MediaType MEDIA_TYPE_TEXT = MediaType.parse("text/plain");//纯文本格式
 
