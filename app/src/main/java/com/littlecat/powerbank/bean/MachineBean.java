@@ -1,6 +1,7 @@
 package com.littlecat.powerbank.bean;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by Administrator on 2018/1/24.
@@ -8,7 +9,7 @@ import java.util.List;
 
 public class MachineBean {
     private DeviceBean device;
-    private List<BatteryBean> batteryBeanList;
+    private Map<String,Object> batteries;
 
     public String getMac() {
         return mac;
@@ -28,11 +29,11 @@ public class MachineBean {
         this.device = deviceBean;
     }
 
-    public List<BatteryBean> getBatteryBeanList() {
-        return batteryBeanList;
+    public Map<String,Object> getBatteryBeanList() {
+        return batteries;
     }
 
-    public void setBatteryBeanList( List<BatteryBean> batteryBeanList) {
-        this.batteryBeanList = batteryBeanList;
+    public void setBatteryBeanList( Map<String,Object> batteries) {
+        this.batteries = batteries;
     }
 }
